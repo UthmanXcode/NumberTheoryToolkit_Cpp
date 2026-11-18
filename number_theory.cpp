@@ -1,88 +1,103 @@
-#include "number_theory.h" // This line allows "number_theory.cpp" to see the function declarations from our header file.
 
-#include <climits> // Provides LLONG_MAX, the maximum value of a long long integer.
+#include <climits> // Provides LLONG_MAX.
 
-// 1. Function implementation for prime check.
+#include "number_theory.h"
+
+// ============================================================
+// 1. PRIME NUMBER CHECKER
+// Algorithm: 6k +/- 1 optimization.
+// Time Complexity: O(sqrt(n))
+// Space Complexity: O(1)
+// ============================================================
 
 bool isPrime(int n)
 {
-
   // Numbers smaller than 2 are not prime.
   if (n < 2)
   {
     return false;
   }
 
-  // Check whether n has any divisor from 2 up to its square root.
-  for (int i = 2; i <= n / i; ++i)
+  // Handle divisibility by 2 and 3 first.
+  if (n == 2 || n == 3)
   {
+    return true;
+  }
 
-    // If n is divisible by i, it is not a prime number.
-    if (n % i == 0)
+  if (n % 2 == 0 || n % 3 == 0)
+  {
+    return false;
+  }
+
+  // Every prime greater than 3 has the form 6k - 1 or 6k + 1.
+  // Check both possibilities while avoiding multiplication overflow.
+  for (int i = 5; i <= n / i; i += 6)
+  {
+    if (n % i == 0 || n % (i + 2) == 0)
     {
       return false;
     }
   }
 
-  // No divisor was found, so n is prime.
   return true;
 }
 
-// 2. Function implementation for GCD of two numbers. The function uses "Euclidean Algorithm".
+// ============================================================
+// 2. GREATEST COMMON DIVISOR (GCD)
+// Algorithm: Iterative Euclidean Algorithm.
+// Time Complexity: O(log(min(a, b)))
+// Space Complexity: O(1)
+// ============================================================
 
 long long gcd(int a, int b)
 {
-
-  // Convert the inputs to long long to handle the full int range safely.
+  // Convert to long long before changing signs.
+  // This safely handles INT_MIN.
   long long x = a;
   long long y = b;
 
-  // Make both numbers nonnegative.
+  // Make both values nonnegative.
   if (x < 0)
   {
     x = -x;
   }
+
   if (y < 0)
   {
     y = -y;
   }
 
-  // Repeat the Euclidean algorithm until the remainder becomes 0.
+  // Apply the Euclidean Algorithm.
   while (y != 0)
   {
-
-    // Find the remainder when a is divided by b.
     long long remainder = x % y;
 
-    // Move y into x for the next calculation.
     x = y;
-
-    // Use the remainder as the new value of y.
     y = remainder;
   }
 
-  // When b becomes 0, a contains the GCD.
   return x;
 }
 
-// 3. Function implementation for LCM of two numbers.
-// long long is a built-in C++ data type that typically uses 64 bits,
-// allowing it to store larger integer values than int.
+// ============================================================
+// 3. LEAST COMMON MULTIPLE (LCM)
+// Algorithm: GCD-based calculation with overflow protection.
+// Time Complexity: O(log(min(a, b)))
+// Space Complexity: O(1)
+// ============================================================
 
 long long lcm(int a, int b)
 {
-
-  // The LCM of any number and 0 is 0.
+  // The LCM of any number and zero is zero.
   if (a == 0 || b == 0)
   {
     return 0;
   }
 
-  // Convert both inputs to long long.
+  // Convert inputs to long long and make them nonnegative.
   long long x = a;
   long long y = b;
 
-  // Make both numbers nonnegative.
   if (x < 0)
   {
     x = -x;
@@ -93,136 +108,166 @@ long long lcm(int a, int b)
     y = -y;
   }
 
-  // Calculate the GCD of the two positive values.
+  // Calculate the GCD.
   long long divisor = gcd(a, b);
 
   // Divide before multiplying to reduce overflow risk.
   long long first = x / divisor;
 
-  // Check whether the multiplication would exceed long long.
+  // Check whether multiplication would exceed LLONG_MAX.
   if (first > LLONG_MAX / y)
   {
     return -1;
   }
 
-  // Return the calculated LCM.
   return first * y;
 }
 
-// 4. Function implementation of Perfect Numbers checking.
+// ============================================================
+// 4. PERFECT NUMBER CHECKER
+// Algorithm: Divisor-pair optimization.
+// Time Complexity: O(sqrt(n))
+// Space Complexity: O(1)
+// ============================================================
 
 bool isPerfect(int n)
 {
-
-  // Numbers less than or equal to 1 are not perfect numbers.
+  // Numbers less than or equal to 1 are not perfect.
   if (n <= 1)
   {
     return false;
   }
 
-  // Start with 1 because it is a proper divisor of every n > 1.
+  // 1 is a proper divisor of every integer greater than 1.
   long long sum = 1;
 
   // Check possible divisors up to the square root of n.
   for (int i = 2; i <= n / i; ++i)
   {
-
-    // If n is divisible by i, we have found a divisor.
     if (n % i == 0)
     {
-
-      // Add the divisor to the sum.
+      // Add the divisor.
       sum += i;
 
       // Find its paired divisor.
-      int pair = n / i;
+      int pairDivisor = n / i;
 
-      // Avoid adding the same divisor twice for perfect squares.
-      if (pair != i)
+      // Avoid counting the same divisor twice
+      // when n is a perfect square.
+      if (pairDivisor != i)
       {
-        sum += pair;
+        sum += pairDivisor;
       }
     }
   }
 
-  // A number is perfect if its proper divisors add up to itself.
+  // A perfect number equals the sum of its proper divisors.
   return sum == n;
 }
 
-// 5. Function implementation of Armstrong Numbers checking.
+// ============================================================
+// 5. ARMSTRONG NUMBER CHECKER
+// Algorithm: Exponentiation by squaring.
+// Time Complexity: O(d * log(d))
+// Space Complexity: O(1)
+// d = number of digits.
+// ============================================================
+
+// Internal helper function.
+// It is used only inside this source file.
+// It does not need to be declared in number_theory.h.
+
+static long long fastPower(int base, int exponent)
+{
+  long long result = 1;
+  long long powerBase = base;
+
+  while (exponent > 0)
+  {
+    // If the exponent is odd, multiply the result by the base.
+    if (exponent % 2 == 1)
+    {
+      result *= powerBase;
+    }
+
+    // Divide the exponent by 2.
+    exponent /= 2;
+
+    // Square the base for the next iteration.
+    powerBase *= powerBase;
+  }
+
+  return result;
+}
 
 bool isArmstrong(int n)
 {
-
   // Negative numbers are not Armstrong numbers.
   if (n < 0)
   {
     return false;
   }
 
-  // Keep the original number for the final comparison.
+  // Keep the original number for comparison.
   int original = n;
 
-  // Use a temporary variable to count the digits.
+  // Count the number of digits.
   int temp = n;
   int digits = 0;
 
-  // Count how many digits the number contains.
   do
   {
-    digits++;
+    ++digits;
     temp /= 10;
+
   } while (temp > 0);
 
-  // Reset temp so we can process the digits again.
+  // Reset temp to process the original number.
   temp = n;
 
-  // Store the sum of each digit raised to the number of digits.
+  // Use long long to prevent intermediate overflow.
   long long sum = 0;
 
-  // Extract and process each digit.
+  // Extract and process every digit.
   do
   {
-    // Get the last digit of the number.
     int digit = temp % 10;
 
-    // Calculate the digit raised to the required power.
-    long long digitPower = 1;
+    // Raise the digit to the number of digits.
+    sum += fastPower(digit, digits);
 
-    for (int i = 0; i < digits; ++i)
-    {
-      digitPower *= digit;
-    }
-
-    // Add the calculated power to the total sum.
-    sum += digitPower;
-
-    // Remove the last digit before the next iteration.
+    // Remove the last digit.
     temp /= 10;
 
   } while (temp > 0);
 
-  // The number is Armstrong if the calculated sum equals the original.
   return sum == original;
 }
 
-// 6. Function implementation of Factorial Calculation using Recursion.
+// ============================================================
+// 6. FACTORIAL CALCULATOR
+// Algorithm: Iterative multiplication.
+// Time Complexity: O(n)
+// Space Complexity: O(1)
+// ============================================================
 
 long long factorial(int n)
 {
-
   // Reject negative numbers and values above 20.
+  // 20! fits inside a signed long long.
   if (n < 0 || n > 20)
   {
     return -1;
   }
 
-  // Base case: 0! = 1 and 1! = 1.
-  if (n == 0 || n == 1)
+  // Start at 1 because 0! = 1 and 1! = 1.
+  long long result = 1;
+
+  // Calculate the factorial iteratively.
+  for (int i = 2; i <= n; ++i)
   {
-    return 1;
+    result *= i;
   }
 
-  // Recursive case.
-  return static_cast<long long>(n) * factorial(n - 1);
+  return result;
 }
