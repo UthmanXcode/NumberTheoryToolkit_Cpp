@@ -1,4 +1,3 @@
-
 #include <climits> // Provides LLONG_MAX.
 
 #include "number_theory.h"
